@@ -2,7 +2,7 @@
 # defaults file for server_security role
 
 # List of security tasks to execute
-# Possible values: set_hostname, ssh_security, backup, auto_unlock, overlay
+# Possible values: set_hostname, ssh_security, backup, auto_unlock
 server_security_tasks: []
 
 # APT Configuration - control package updates and system restart behavior

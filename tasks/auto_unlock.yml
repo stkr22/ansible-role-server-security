@@ -63,19 +63,19 @@
 - name: Copy service account key file
   become: true
   ansible.builtin.copy:
-    src: "{{ gcp_service_account_key_file }}"
+    src: "{{ server_security_gcp_service_account_key_file }}"
     dest: "{{ server_security_gcp_credentials_dir }}/luks-key-{{ inventory_hostname }}.json"
     owner: root
     group: root
     mode: '0600'
-  when: gcp_service_account_key_file is defined and gcp_service_account_key_file | length > 0
+  when: server_security_gcp_service_account_key_file is defined and server_security_gcp_service_account_key_file | length > 0
   ignore_errors: true
   register: server_security_key_copy_result
 
 - name: Warning when service account key not found
   ansible.builtin.debug:
     msg: "WARNING: Service account key file not found or not copied. LUKS unlock will not work until key is provided."
-  when: server_security_key_copy_result is failed or gcp_service_account_key_file is not defined
+  when: server_security_key_copy_result is failed or server_security_gcp_service_account_key_file is not defined
 
 - name: Copy the LUKS unlock script
   become: true
@@ -116,7 +116,7 @@
         gcloud auth activate-service-account \
           --key-file="{{ server_security_gcp_credentials_dir }}/luks-key-{{ inventory_hostname }}.json" \
           --quiet
-        gcloud secrets versions access latest --secret="{{ auto_unlock_secret_name }}" --project="{{ gcp_project_id }}" > /dev/null
+        gcloud secrets versions access latest --secret="{{ auto_unlock_secret_name }}" --project="{{ server_security_gcp_project_id }}" > /dev/null
       args:
         executable: /bin/bash
       register: server_security_gcp_auth_test

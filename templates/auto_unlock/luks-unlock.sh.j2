@@ -17,7 +17,7 @@ MOUNT_PATH=$3
 CRYPT_COUNTER=$4
 
 # Baked-in values from Ansible template
-GOOGLE_CLOUD_PROJECT="{{ gcp_project_id }}"
+GOOGLE_CLOUD_PROJECT="{{ server_security_gcp_project_id }}"
 GOOGLE_APPLICATION_CREDENTIALS="{{ server_security_gcp_credentials_dir }}/luks-key-{{ inventory_hostname }}.json"
 NODE_NAME="{{ inventory_hostname }}"
 
