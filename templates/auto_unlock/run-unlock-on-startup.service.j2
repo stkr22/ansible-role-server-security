@@ -1,0 +1,16 @@
+[Unit]
+Description=Run script on startup and retry every 5 minutes on failure
+After=network-online.target
+Wants=network-online.target
+
+# To make a server wait for this one use After/Required
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c '{{ server_security_auto_unlock_script_path }} "{{ auto_unlock_secret_name }}" "{{ auto_unlock_encrypted_drive_mount_point }}" "{{ server_security_auto_unlock_unlocked_drive_mount_point }}" {{ auto_unlock_target_crypt_counter }}'
+RemainAfterExit=yes
+Restart=on-failure
+RestartSec=10
+RestartMode=direct
+
+[Install]
+WantedBy=multi-user.target

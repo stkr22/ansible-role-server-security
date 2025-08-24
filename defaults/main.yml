@@ -1,0 +1,65 @@
+---
+# defaults file for server_security role
+
+# List of security tasks to execute
+# Possible values: set_hostname, ssh_security, backup, auto_unlock, overlay
+server_security_tasks: []
+
+# APT Configuration - control package updates and system restart behavior
+server_security_apt_config:
+  with_restart: false
+  update_cache: true
+  upgrade: "safe"  # Options: no, safe, full, dist
+  autoremove: true
+  autoclean: true
+
+# Network Security Configuration
+server_security_network_security:
+  level: simple  # Options: simple, moderate, paranoid
+
+# Overlay filesystem configurations
+server_security_overlay_configs: []
+
+# Backup configuration using rclone
+server_security_backup_rclone_config:
+  ssh_key_path: null
+  server: null
+  service_name: "file-sync"
+  service: null
+  username: null
+  sync: []
+  cron: []
+
+# General backup configuration
+server_security_backup_general_config:
+  script_path: "/opt/file-sync"
+  script_path_template: "/opt/file-sync/file-sync"
+
+# SSH Security Configuration
+server_security_ssh_config:
+  level: simple  # Options: simple, moderate, paranoid
+  sshd_security_guidelines:
+    - regexp: "^PasswordAuthentication"
+      line: "PasswordAuthentication no"
+    - regexp: "^PermitRootLogin"
+      line: "PermitRootLogin no"
+    - regexp: "^PubkeyAuthentication"
+      line: "PubkeyAuthentication yes"
+    - regexp: "^X11Forwarding"
+      line: "X11Forwarding no"
+    - regexp: "^PermitEmptyPasswords"
+      line: "PermitEmptyPasswords no"
+    - regexp: "^MaxAuthTries"
+      line: "MaxAuthTries 3"
+    - regexp: "^ClientAliveInterval"
+      line: "ClientAliveInterval 300"
+    - regexp: "^ClientAliveCountMax"
+      line: "ClientAliveCountMax 2"
+    - regexp: "^Protocol"
+      line: "Protocol 2"
+
+# Auto-unlock configuration for encrypted drives
+server_security_auto_unlocks: []
+
+# Timezone configuration
+server_security_timezone: "Europe/Berlin"

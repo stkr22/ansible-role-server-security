@@ -1,0 +1,19 @@
+[Unit]
+Description = SyncService
+After = network.target
+
+[Service]
+PIDFile = /run/syncservice/syncservice_{{ backup_rclone_sync['name'] }}.pid
+User = root
+Group = root
+WorkingDirectory = {{ bs_backup_general_config.script_path }}
+ExecStartPre = /bin/mkdir /run/syncservice_{{ backup_rclone_sync['name'] }}
+ExecStartPre = /bin/chown -R root:root /run/syncservice_{{ backup_rclone_sync['name'] }}
+ExecStart = /bin/bash {{ bs_backup_general_config.script_path_template }}_{{ backup_rclone_sync['name'] }}.sh
+ExecReload = /bin/kill -s HUP $MAINPID
+ExecStop = /bin/kill -s TERM $MAINPID
+ExecStopPost = /bin/rm -rf /run/syncservice_{{ backup_rclone_sync['name'] }}
+PrivateTmp = true
+
+[Install]
+WantedBy = multi-user.target

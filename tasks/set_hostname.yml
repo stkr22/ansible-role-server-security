@@ -1,0 +1,13 @@
+---
+- name: Set a hostname.
+  become: true
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname }}"
+
+- name: Set hostname in hosts file.
+  become: true
+  ansible.builtin.lineinfile:
+    dest: /etc/hosts
+    regexp: "127.0.0.1 {{ inventory_hostname }}"
+    line: "127.0.0.1 {{ inventory_hostname }}"
+    insertbefore: BOF

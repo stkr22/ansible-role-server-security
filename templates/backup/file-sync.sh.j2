@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+while inotifywait -e create,delete,modify,move -r {{ backup_rclone_sync['source'] }}
+
+do
+	rclone sync --config {{ backup_rclone_config_path }} --transfers 4 --checkers 10 --delete-after --progress --stats 10s --stats-one-line-date --timeout 2m {{ backup_rclone_sync['source'] }} {{ bs_backup_rclone_config['service_name'] }}:{{ backup_rclone_sync['dest'] }}
+done

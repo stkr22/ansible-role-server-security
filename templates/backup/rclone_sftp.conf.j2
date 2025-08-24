@@ -1,0 +1,7 @@
+[{{ bs_backup_rclone_config['service_name'] }}]
+type = sftp
+host = {{ bs_backup_rclone_config['server'] }}
+user = {{ bs_backup_rclone_config['username'] }}
+key_file = {{ backup_rclone_ssh_key_path }}
+md5sum_command = none
+sha1sum_command = none

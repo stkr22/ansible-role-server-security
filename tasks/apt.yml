@@ -1,0 +1,61 @@
+---
+# APT package management and system updates
+
+- name: APT | Update package cache
+  become: true
+  ansible.builtin.apt:
+    update_cache: "{{ server_security_apt_config.update_cache | default(true) }}"
+    cache_valid_time: 3600
+  when:
+    - ansible_facts.os_family == "Debian"
+    - server_security_apt_config.update_cache | default(true)
+
+- name: APT | Upgrade packages based on configuration
+  become: true
+  ansible.builtin.apt:
+    upgrade: "{{ server_security_apt_config.upgrade | default('safe') }}"
+    update_cache: false  # Already updated above
+  when:
+    - ansible_facts.os_family == "Debian"
+    - server_security_apt_config.upgrade | default('safe') != 'no'
+  register: server_security_apt_upgrade_result
+
+- name: APT | Remove unnecessary packages
+  become: true
+  ansible.builtin.apt:
+    autoremove: "{{ server_security_apt_config.autoremove | default(true) }}"
+    purge: true
+  when:
+    - ansible_facts.os_family == "Debian"
+    - server_security_apt_config.autoremove | default(true)
+
+- name: APT | Clean package cache
+  become: true
+  ansible.builtin.apt:
+    autoclean: "{{ server_security_apt_config.autoclean | default(true) }}"
+  when:
+    - ansible_facts.os_family == "Debian"
+    - server_security_apt_config.autoclean | default(true)
+
+- name: APT | Check if reboot is required
+  ansible.builtin.stat:
+    path: /var/run/reboot-required
+    get_checksum: false
+  register: server_security_reboot_required_file
+  changed_when: false
+
+- name: APT | Display reboot requirement status
+  ansible.builtin.debug:
+    msg: "System reboot {{ 'required' if server_security_reboot_required_file.stat.exists else 'not required' }}"
+  when: server_security_reboot_required_file is defined
+
+- name: APT | Reboot system if required and configured
+  become: true
+  ansible.builtin.reboot:
+    msg: "Rebooting due to package updates"
+    reboot_timeout: 600
+    pre_reboot_delay: 5
+    post_reboot_delay: 30
+  when:
+    - server_security_apt_config.with_restart | default(false)
+    - reboot_required_file.stat.exists | default(false)

@@ -1,0 +1,58 @@
+---
+# SSH security hardening tasks
+
+- name: SSH | Apply SSH security configuration
+  become: true
+  ansible.builtin.lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "{{ ssh_config.regexp }}"
+    line: "{{ ssh_config.line }}"
+    state: present
+    validate: 'sshd -t -f %s'
+    backup: true
+  loop: "{{ server_security_ssh_config.sshd_security_guidelines }}"
+  loop_control:
+    loop_var: ssh_config
+    label: "{{ ssh_config.line }}"
+  notify: Restart ssh
+
+- name: SSH | Configure allowed users if specified
+  become: true
+  ansible.builtin.lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "^AllowUsers"
+    line: "AllowUsers {{ server_security_ssh.allow_users | join(' ') }}"
+    state: "{{ 'present' if server_security_ssh.allow_users else 'absent' }}"
+    validate: 'sshd -t -f %s'
+  when: server_security_ssh.allow_users is defined
+  notify: Restart ssh
+
+- name: SSH | Configure allowed groups if specified
+  become: true
+  ansible.builtin.lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "^AllowGroups"
+    line: "AllowGroups {{ server_security_ssh.allow_groups | join(' ') }}"
+    state: "{{ 'present' if server_security_ssh.allow_groups else 'absent' }}"
+    validate: 'sshd -t -f %s'
+  when: server_security_ssh.allow_groups is defined
+  notify: Restart ssh
+
+- name: SSH | Configure SSH port if not default
+  become: true
+  ansible.builtin.lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "^Port"
+    line: "Port {{ server_security_ssh.port }}"
+    state: present
+    validate: 'sshd -t -f %s'
+  when: server_security_ssh.port != 22
+  notify: Restart ssh
+
+- name: SSH | Ensure SSH service is enabled and running
+  become: true
+  ansible.builtin.systemd:
+    name: ssh
+    enabled: true
+    state: started
+    daemon_reload: true

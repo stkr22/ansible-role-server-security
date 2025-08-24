@@ -1,0 +1,103 @@
+---
+- name: Verify that required bool variables are defined
+  ansible.builtin.assert:
+    that:
+      - "{{ req_var }} is defined"
+      - "{{ req_var }} != None"
+    fail_msg: "{{ req_var }} needs to be set for the role to work"
+    success_msg: "Required variable {{ req_var }} is defined"
+  loop:
+    - server_security_backup_rclone_config['service_name']
+    - server_security_backup_rclone_config['sync']
+    - server_security_backup_rclone_config['cron']
+  loop_control:
+    loop_var: req_var
+
+- name: Install inotify-tools package.
+  become: true
+  ansible.builtin.apt:
+    name: inotify-tools
+    state: present
+
+- name: Generate SSH key.
+  community.crypto.openssh_keypair:
+    path: "/home/{{ ansible_facts['user_id'] }}/.ssh/file-sync"
+    type: rsa
+    size: 4096
+    state: present
+    force: false
+  when: server_security_backup_rclone_config.ssh_key_path is defined
+
+- name: Setting ssh key variables.
+  ansible.builtin.set_fact:
+    server_security_backup_rclone_ssh_key_path: >-
+      {{ server_security_backup_rclone_config['ssh_key_path'] if server_security_backup_rclone_config.ssh_key_path is defined
+         else '/home/' + ansible_facts['user_id'] + '/.ssh/file-sync' }}
+    server_security_backup_rclone_config_path: >-
+      {{ server_security_backup_rclone_config['rclone_config_path'] if server_security_backup_rclone_config.rclone_config_path is defined
+         else server_security_backup_general_config.script_path_template + '_rclone.config' }}
+
+- name: Create config and script directory.
+  become: true
+  ansible.builtin.file:
+    path: "{{ server_security_backup_general_config.script_path }}"
+    state: directory
+    mode: '0755'
+
+- name: Configuring rclone config.
+  become: true
+  ansible.builtin.template:
+    src: "backup/rclone_{{ server_security_backup_rclone_config['service'] }}.conf.j2"
+    dest: "{{ server_security_backup_rclone_config_path }}"
+    owner: root
+    group: root
+    mode: '0600'
+  when: server_security_backup_rclone_config.rclone_config_path is undefined
+
+- name: Install backup cronjobs.
+  become: true
+  ansible.builtin.cron:
+    name: "Backup files {{ backup_rclone_cron['name'] }}"
+    hour: "{{ backup_rclone_cron['hour'] }}"
+    job: >-
+      rclone sync --config {{ server_security_backup_rclone_config_path }}
+      --transfers 6 --checkers 16 --delete-after --progress --stats 10s --check-first
+      {{ backup_rclone_cron['source'] }} {{ server_security_backup_rclone_config['service_name'] }}:{{ backup_rclone_cron['dest'] }}
+  loop: "{{ server_security_backup_rclone_config['cron'] }}"
+  loop_control:
+    loop_var: backup_rclone_cron
+
+- name: Configuring sync scripts.
+  become: true
+  ansible.builtin.template:
+    src: backup/file-sync.sh.j2
+    dest: "{{ server_security_backup_general_config.script_path_template }}_{{ backup_rclone_sync['name'] }}.sh"
+    owner: root
+    group: root
+    mode: '0755'
+  loop: "{{ server_security_backup_rclone_config['sync'] }}"
+  loop_control:
+    loop_var: backup_rclone_sync
+
+- name: Configuring sync services.
+  become: true
+  ansible.builtin.template:
+    src: backup/sync.service.j2
+    dest: "/etc/systemd/system/sync_{{ backup_rclone_sync['name'] }}.service"
+    owner: root
+    group: root
+    mode: '0755'
+  loop: "{{ server_security_backup_rclone_config['sync'] }}"
+  loop_control:
+    loop_var: backup_rclone_sync
+
+- name: Start and enable sync services.
+  become: true
+  ansible.builtin.systemd:
+    state: started
+    daemon_reload: true
+    enabled: true
+    name: "sync_{{ backup_rclone_sync['name'] }}.service"
+  loop: "{{ server_security_backup_rclone_config['sync'] }}"
+  loop_control:
+    loop_var: backup_rclone_sync
