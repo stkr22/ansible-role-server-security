@@ -58,4 +58,4 @@
     post_reboot_delay: 30
   when:
     - server_security_apt_config.with_restart | default(false)
-    - reboot_required_file.stat.exists | default(false)
+    - server_security_reboot_required_file.stat.exists | default(false)
